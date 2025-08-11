@@ -1,4 +1,7 @@
 // src/pages/Inventory.jsx
+// Adds highlighted item name styling (gradient underline and hover glow) in the Items list.
+// Only the name highlight and minimal helper styles were added; existing logic and other UI remain unchanged.
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   addItem,
@@ -52,6 +55,29 @@ function chipStyle(variant) {
   }
   return base;
 }
+
+// Name highlight styles
+const nameStyle = {
+  fontSize: 20,
+  fontWeight: 800,
+  letterSpacing: 0.2,
+  color: "#eaf2ff",
+  position: "relative",
+  paddingBottom: 2,
+  display: "inline-block",
+};
+
+const nameUnderline = {
+  content: '""',
+  position: "absolute",
+  left: 0,
+  right: 0,
+  bottom: -2,
+  height: 3,
+  background: "linear-gradient(90deg, #6aa1ff 0%, #59a14f 100%)",
+  borderRadius: 2,
+  opacity: 0.9,
+};
 
 export default function Inventory() {
   const [items, setItems] = useState([]);
@@ -158,7 +184,7 @@ export default function Inventory() {
         </div>
       </div>
 
-      {/* Items - improved visual cards */}
+      {/* Items - improved visual cards with highlighted name */}
       <div
         className="list"
         style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 12 }}
@@ -176,13 +202,18 @@ export default function Inventory() {
                 flexDirection: "column",
                 gap: 10,
                 minHeight: 140,
+                transition: "box-shadow 0.2s ease",
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 0 1px rgba(106,161,255,0.25), 0 8px 24px rgba(0,0,0,0.25)")}
+              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
             >
               {/* Header: name + badges + qty */}
               <div className="row between" style={{ alignItems: "center", gap: 8 }}>
                 <div className="row" style={{ alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <div className="title" style={{ fontSize: 18, fontWeight: 700 }}>
+                  {/* Highlighted name */}
+                  <div style={nameStyle}>
                     {i.name}
+                    <span style={nameUnderline} />
                   </div>
                   {i.category && (
                     <span
