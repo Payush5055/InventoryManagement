@@ -1,6 +1,7 @@
 // src/pages/Inventory.jsx
 // Adds highlighted item name styling (gradient underline and hover glow) in the Items list.
-// Only the name highlight and minimal helper styles were added; existing logic and other UI remain unchanged.
+// Enhanced Edit modal with clear field labels and helper descriptions so users know what each field represents.
+// Shows live total value (Qty × Price) while editing.
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -77,6 +78,33 @@ const nameUnderline = {
   background: "linear-gradient(90deg, #6aa1ff 0%, #59a14f 100%)",
   borderRadius: 2,
   opacity: 0.9,
+};
+
+// Small helper components/styles for labeled inputs in modals
+function Field({ label, hint, children, style }) {
+  return (
+    <div style={{ flex: "1 1 32%", minWidth: 220, ...style }}>
+      <label style={{ display: "block", fontSize: 13, color: "#9fb3c8", marginBottom: 4 }}>
+        {label}
+      </label>
+      {children}
+      {hint && (
+        <div className="muted" style={{ fontSize: 12, marginTop: 4, opacity: 0.85 }}>
+          {hint}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  background: "#1f2733",
+  color: "#e6eef7",
+  border: "1px solid #3a4558",
+  borderRadius: 8,
+  padding: "10px 10px",
+  fontSize: 14,
 };
 
 export default function Inventory() {
@@ -204,7 +232,10 @@ export default function Inventory() {
                 minHeight: 140,
                 transition: "box-shadow 0.2s ease",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 0 1px rgba(106,161,255,0.25), 0 8px 24px rgba(0,0,0,0.25)")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.boxShadow =
+                  "0 0 0 1px rgba(106,161,255,0.25), 0 8px 24px rgba(0,0,0,0.25)")
+              }
               onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
             >
               {/* Header: name + badges + qty */}
@@ -255,9 +286,7 @@ export default function Inventory() {
                   <div className="muted" style={{ fontSize: 12 }}>
                     Quantity
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 700 }}>
-                    {Number(i.quantity)}
-                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{Number(i.quantity)}</div>
                 </div>
               </div>
 
@@ -449,86 +478,107 @@ function AddItemModal({ onClose, onSaved }) {
 
         <form onSubmit={submit} className="row wrap" style={{ gap: 8 }}>
           {/* Name */}
-          <input
-            required
-            placeholder="Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            style={{ flex: "1 1 60%" }}
-          />
+          <Field label="Item name" hint="A short, unique name for the item (e.g., Transformer T-100)." style={{ flex: "1 1 60%" }}>
+            <input
+              required
+              placeholder="Name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
           {/* Unit */}
-          <select
-            value={form.unit}
-            onChange={(e) => setForm({ ...form, unit: e.target.value })}
-            style={{ flex: "1 1 38%" }}
-          >
-            {UNITS.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
+          <Field label="Unit of measure" hint="How this item is measured (e.g., pcs, box, kg)." style={{ flex: "1 1 38%" }}>
+            <select
+              value={form.unit}
+              onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              style={{ ...inputStyle }}
+            >
+              {UNITS.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           {/* Quantity */}
-          <input
-            required
-            type="number"
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
+          <Field label="Quantity in stock" hint="Current available stock. Must be a non-negative number.">
+            <input
+              required
+              type="number"
+              placeholder="Quantity"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
           {/* Price */}
-          <input
-            required
-            type="number"
-            placeholder="Price (per unit)"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
+          <Field label="Price per unit" hint="Cost per single unit of this item (numeric).">
+            <input
+              required
+              type="number"
+              placeholder="Price (per unit)"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
           {/* Dealer */}
-          <input
-            required
-            placeholder="Dealer"
-            value={form.dealer}
-            onChange={(e) => setForm({ ...form, dealer: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
+          <Field label="Dealer/Supplier" hint="Name of the supplier or dealer for reference.">
+            <input
+              required
+              placeholder="Dealer"
+              value={form.dealer}
+              onChange={(e) => setForm({ ...form, dealer: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
           {/* Minimum quantity */}
-          <input
-            required
-            type="number"
-            placeholder="Minimum quantity"
-            value={form.minThreshold}
-            onChange={(e) => setForm({ ...form, minThreshold: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
-          {/* Category restricted dropdown with visible styles */}
-          <select
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            style={{ ...selectStyle, flex: "1 1 32%" }}
-            required
+          <Field
+            label="Minimum threshold"
+            hint="Alert level: when stock goes below this number, the item is considered low."
           >
-            <option value="">Category</option>
-            {DEFAULT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            <input
+              required
+              type="number"
+              placeholder="Minimum quantity"
+              value={form.minThreshold}
+              onChange={(e) => setForm({ ...form, minThreshold: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          {/* Category restricted dropdown with visible styles */}
+          <Field label="Category" hint='Choose one of the allowed categories: "Transformer" or "Line".'>
+            <select
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              style={{ ...inputStyle }}
+              required
+            >
+              <option value="">Category</option>
+              {DEFAULT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           {/* Total value */}
           <div className="card" style={{ flex: "1 1 100%" }}>
             <div className="row between">
               <div className="muted">Total item value (Qty × Price)</div>
-              <div className="title">
-                {isFinite(totalValue) ? totalValue.toFixed(2) : "0.00"}
-              </div>
+              <div className="title">{isFinite(totalValue) ? totalValue.toFixed(2) : "0.00"}</div>
             </div>
           </div>
 
-          <div className="modal-actions">
+          <div className="modal-actions" style={{ marginTop: 8 }}>
             <button type="button" className="btn secondary" onClick={onClose}>
               Cancel
             </button>
@@ -555,6 +605,9 @@ function EditItemModal({ item, onClose, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
 
+  // Live total value while editing
+  const totalValueEdit = (Number(form.quantity) || 0) * (Number(form.price) || 0);
+
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -579,76 +632,121 @@ function EditItemModal({ item, onClose, onSaved }) {
             ✕
           </button>
         </div>
-        <form onSubmit={submit} className="row wrap" style={{ gap: 8 }}>
-          <input
-            required
-            placeholder="Item name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            style={{ flex: "1 1 60%" }}
-          />
-          <input
-            placeholder="SKU"
-            value={form.sku}
-            onChange={(e) => setForm({ ...form, sku: e.target.value })}
-            style={{ flex: "1 1 38%" }}
-          />
-          <input
-            required
-            type="number"
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
-          <input
-            required
-            type="number"
-            placeholder="Min threshold"
-            value={form.minThreshold}
-            onChange={(e) => setForm({ ...form, minThreshold: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
-          <select
-            value={form.unit}
-            onChange={(e) => setForm({ ...form, unit: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          >
-            {UNITS.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            placeholder="Price"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
-          {/* Category restricted dropdown with visible styles */}
-          <select
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            style={{ ...selectStyle, flex: "1 1 32%" }}
-            required
-          >
-            <option value="">Category</option>
-            {DEFAULT_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <input
-            placeholder="Dealer"
-            value={form.dealer}
-            onChange={(e) => setForm({ ...form, dealer: e.target.value })}
-            style={{ flex: "1 1 32%" }}
-          />
 
-          <div className="modal-actions">
+        {/* Fieldset with labels and hints to clarify each input */}
+        <form onSubmit={submit} className="row wrap" style={{ gap: 12 }}>
+          <Field
+            label="Item name"
+            hint="The display name of the item (e.g., Transformer T-100)."
+            style={{ flex: "1 1 60%" }}
+          >
+            <input
+              required
+              placeholder="Item name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          <Field
+            label="SKU (optional)"
+            hint="Internal stock-keeping unit or code used to identify the item."
+            style={{ flex: "1 1 38%" }}
+          >
+            <input
+              placeholder="SKU"
+              value={form.sku}
+              onChange={(e) => setForm({ ...form, sku: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          <Field label="Quantity in stock" hint="Current stock level. Must be a non-negative number.">
+            <input
+              required
+              type="number"
+              placeholder="Quantity"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          <Field
+            label="Minimum threshold"
+            hint="Alert level: if stock falls below this, the item is flagged as Low."
+          >
+            <input
+              required
+              type="number"
+              placeholder="Min threshold"
+              value={form.minThreshold}
+              onChange={(e) => setForm({ ...form, minThreshold: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          <Field label="Unit of measure" hint="How the item is measured (pcs, box, kg, etc.).">
+            <select
+              value={form.unit}
+              onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              style={{ ...inputStyle }}
+            >
+              {UNITS.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Price per unit" hint="Cost per single unit (numeric).">
+            <input
+              type="number"
+              placeholder="Price"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          <Field label="Category" hint='Choose one of "Transformer" or "Line".'>
+            <select
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              style={{ ...inputStyle }}
+              required
+            >
+              <option value="">Category</option>
+              {DEFAULT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Dealer/Supplier" hint="Who supplies this item. Useful for reorders.">
+            <input
+              placeholder="Dealer"
+              value={form.dealer}
+              onChange={(e) => setForm({ ...form, dealer: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+
+          {/* Live total value while editing */}
+          <div className="card" style={{ flex: "1 1 100%" }}>
+            <div className="row between">
+              <div className="muted">Total item value (Qty × Price)</div>
+              <div className="title">
+                {isFinite(totalValueEdit) ? Number(totalValueEdit).toFixed(2) : "0.00"}
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: 4, width: "100%" }}>
             <button type="button" className="btn secondary" onClick={onClose}>
               Cancel
             </button>

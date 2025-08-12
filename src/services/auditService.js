@@ -2,18 +2,25 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
-const auditCol = collection(db, "auditLogs");
-
-// action examples: "add", "editSpecs", "updateQty", "remove"
+// Minimal, safe audit writer
 export async function logAction(user, action, itemId, itemName, details = {}) {
-  const payload = {
-    actorUid: user?.uid || null,
-    actorEmail: user?.email || null,
-    action: String(action || ""),
-    itemId: itemId || null,
-    itemName: itemName || null,
-    details: details || {},
-    timestamp: serverTimestamp(),
-  };
-  await addDoc(auditCol, payload);
+  try {
+    const docPayload = {
+      action,
+      itemId: itemId || "",
+      itemName: itemName || "",
+      timestamp: serverTimestamp(),
+      // identity fallbacks (in case caller forgot to pass identity in details)
+      userId: details.userId ?? user?.uid ?? "",
+      userEmail: details.userEmail ?? user?.email ?? "",
+      userName: details.userName ?? user?.displayName ?? user?.email ?? "Unknown",
+      // merge the rest of details last so no fields are lost
+      ...details,
+    };
+    await addDoc(collection(db, "auditLogs"), docPayload);
+    // Optional: console.debug("AUDIT wrote:", action, itemId, itemName);
+  } catch (err) {
+    console.error("AUDIT write failed:", action, itemId, err);
+    throw err;
+  }
 }

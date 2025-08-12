@@ -1,9 +1,10 @@
 // src/firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-// import { getAnalytics } from "firebase/analytics"; // optional, browser-only
 
+// IMPORTANT: Ensure these environment variables are set in your .env (CRA) or import your config directly.
+// REACT_APP_ prefix is required for Create React App to expose env vars to the browser.
 // Prefer using environment variables in production, but this shows the corrected values.
 const firebaseConfig = {
   apiKey: "AIzaSyAambYyqbJHWM6uABJ5RSDEc26shiWRPzk",
@@ -17,13 +18,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize services you actually use
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Optional: only enable analytics in the browser (not SSR/build time)
-// let analytics;
-// if (typeof window !== "undefined") {
-//   analytics = getAnalytics(app);
-// }
-// export { analytics };
+// Google provider + helper
+const provider = new GoogleAuthProvider();
+// Optionally configure scopes if needed:
+// provider.addScope("email");
+// provider.addScope("profile");
+
+export async function signInWithGooglePopup() {
+  return await signInWithPopup(auth, provider);
+}

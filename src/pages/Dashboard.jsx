@@ -1,4 +1,5 @@
 // src/pages/Dashboard.jsx
+import InventoryLogo from "../components/InventoryLogo";
 import React, { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { Bar, Doughnut } from "react-chartjs-2";
@@ -12,6 +13,7 @@ import {
   Legend,
 } from "chart.js";
 import { db } from "../firebase/firebaseConfig";
+import { usePermissions } from "../hooks/usePermissions"; // NEW
 
 Chart.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
@@ -20,6 +22,7 @@ const CATEGORIES = ["Transformer", "Line"];
 export default function Dashboard() {
   const [items, setItems] = useState([]);
   const [category, setCategory] = useState("");
+  const { permissions, loading } = usePermissions(); // NEW
 
   useEffect(() => {
     const q = query(collection(db, "items"), orderBy("createdAt", "desc"));
@@ -37,19 +40,40 @@ export default function Dashboard() {
 
   const byItemNames = filtered.map((i) => i.name || i.id.slice(0, 6));
   const quantities = filtered.map((i) => Number(i.quantity || 0));
+
+  // Price-sensitive values
   const values = filtered.map((i) => {
     const qty = Number(i.quantity || 0);
     const price = Number(i.price || 0);
     return typeof i.totalValue === "number" ? Number(i.totalValue) : qty * price;
   });
+
   const lowCount = filtered.filter(
     (i) => Number(i.quantity) < Number(i.minThreshold || 0)
   ).length;
   const okCount = Math.max(filtered.length - lowCount, 0);
 
+  const totalsByCategory = useMemo(() => {
+    const sums = { Transformer: 0, Line: 0 };
+    for (const it of items) {
+      const cat = it.category;
+      if (cat === "Transformer" || cat === "Line") {
+        const qty = Number(it.quantity || 0);
+        const price = Number(it.price || 0);
+        const val =
+          typeof it.totalValue === "number" ? Number(it.totalValue) : qty * price;
+        sums[cat] += Number.isFinite(val) ? val : 0;
+      }
+    }
+    return sums;
+  }, [items]);
+
   const axisColor = "#9fb3c8";
   const gridColor = "rgba(159,179,200,0.2)";
   const titleColor = "#e6eef7";
+
+  const canViewReports =
+    !loading && Boolean(permissions && permissions.viewReports);
 
   return (
     <div className="page">
@@ -79,6 +103,43 @@ export default function Dashboard() {
       </div>
 
       <div className="row wrap" style={{ gap: 16 }}>
+        {/* Price-sensitive: only if viewReports is true */}
+        {canViewReports && (
+          <Card title="Total Inventory Amount by Category">
+            <Bar
+              data={{
+                labels: CATEGORIES,
+                datasets: [
+                  {
+                    label: "Total Amount",
+                    data: CATEGORIES.map((c) => Number(totalsByCategory[c] || 0)),
+                    backgroundColor: ["#6aa1ff", "#59a14f"],
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: { labels: { color: titleColor } },
+                  tooltip: {
+                    mode: "index",
+                    intersect: false,
+                    callbacks: {
+                      label: (ctx) =>
+                        ` ${ctx.dataset.label}: ${Number(ctx.raw || 0).toFixed(2)}`,
+                    },
+                  },
+                },
+                scales: {
+                  x: { ticks: { color: axisColor }, grid: { color: gridColor } },
+                  y: { ticks: { color: axisColor }, grid: { color: gridColor } },
+                },
+              }}
+            />
+          </Card>
+        )}
+
+        {/* Stock by Item (quantity) — visible to all */}
         <Card title="Stock by Item">
           <Bar
             data={{
@@ -105,39 +166,43 @@ export default function Dashboard() {
           />
         </Card>
 
-        <Card title="Value by Item">
-          <Bar
-            data={{
-              labels: byItemNames,
-              datasets: [
-                {
-                  label: "Total Value",
-                  data: values,
-                  backgroundColor: "#59a14f",
-                },
-              ],
-            }}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: { labels: { color: titleColor } },
-                tooltip: {
-                  mode: "index",
-                  intersect: false,
-                  callbacks: {
-                    label: (ctx) =>
-                      ` ${ctx.dataset.label}: ${Number(ctx.raw || 0).toFixed(2)}`,
+        {/* Price-sensitive: Value by Item chart */}
+        {canViewReports && (
+          <Card title="Value by Item">
+            <Bar
+              data={{
+                labels: byItemNames,
+                datasets: [
+                  {
+                    label: "Total Value",
+                    data: values,
+                    backgroundColor: "#59a14f",
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: { labels: { color: titleColor } },
+                  tooltip: {
+                    mode: "index",
+                    intersect: false,
+                    callbacks: {
+                      label: (ctx) =>
+                        ` ${ctx.dataset.label}: ${Number(ctx.raw || 0).toFixed(2)}`,
+                    },
                   },
                 },
-              },
-              scales: {
-                x: { ticks: { color: axisColor }, grid: { color: gridColor } },
-                y: { ticks: { color: axisColor }, grid: { color: gridColor } },
-              },
-            }}
-          />
-        </Card>
+                scales: {
+                  x: { ticks: { color: axisColor }, grid: { color: gridColor } },
+                  y: { ticks: { color: axisColor }, grid: { color: gridColor } },
+                },
+              }}
+            />
+          </Card>
+        )}
 
+        {/* Stock Status — visible to all */}
         <Card title="Stock Status">
           <Doughnut
             data={{
